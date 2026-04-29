@@ -1,0 +1,15 @@
+{
+  "name": "PatPat My Cat",
+  "short_name": "Cat Pat",
+  "description": "Pat the cat!",
+  "display": "fullscreen",
+  "background_color": "#fffdf5",
+  "theme_color": "#fffdf5",
+  "start_url": "https://datpc2007.github.io/patpatmycat/",
+  "scope": "https://datpc2007.github.io/patpatmycat/",
+  "id": "https://datpc2007.github.io/patpatmycat/",
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
