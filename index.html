@@ -41,6 +41,7 @@ function playCrazy() { SND_CRAZY.currentTime=0; SND_CRAZY.play().catch(()=>{}); 
 // ── Canvas ────────────────────────────────────────────────────────────────
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
 let W = canvas.width  = window.innerWidth;
 let H = canvas.height = window.innerHeight;
 
@@ -51,21 +52,17 @@ window.addEventListener('resize', () => {
 });
 
 // ── Dimensions ────────────────────────────────────────────────────────────
-// Pygame: cat_sz=min(scrw,scrh), cat_w=cat_sz*0.7, cat_h=cat_sz, bottom=centery+cat_h/2
-// => mèo chiếm phần dưới màn hình
-let CAT_W, CAT_H, CAT_X, CAT_Y; // vị trí vẽ cat (top-left)
-let HEAD_CX, HEAD_CY;            // vị trí big head xuất hiện
-let HEAD_BASE;                   // kích thước gốc của cat_head (600px trong pygame)
+let CAT_W, CAT_H, CAT_X, CAT_Y;
+let HEAD_CX, HEAD_CY;
+let HEAD_BASE;
 
 function resetDimensions() {
   const sz = Math.min(W, H);
   CAT_W = sz * 0.7;
   CAT_H = sz;
-  // midbottom = (W/2, H/2 + CAT_H/2) → top-left:
   CAT_X = W/2 - CAT_W/2;
-  CAT_Y = H/2 + CAT_H/2 - CAT_H; // = H/2 - CAT_H/2
-  // head topright = (CAT_X+CAT_W, CAT_Y-75) → head 600x600 scaled
-  HEAD_BASE = sz * 0.6; // tương đương 600px
+  CAT_Y = H/2 + CAT_H/2 - CAT_H;
+  HEAD_BASE = sz * 0.6;
   HEAD_CX = (CAT_X + CAT_W) - HEAD_BASE/2;
   HEAD_CY = CAT_Y + HEAD_BASE/2 - sz*0.075;
 }
@@ -79,9 +76,9 @@ function resetGame() {
     patPlay: false, mx: W/2, my: H/2,
     stareRandom: 0, stareCounter: 0,
     catIsStaring: false, displayHead: false,
-    headTickMs: 0,   // ms đã pat khi đang stare (chờ 250ms để hiện đầu)
+    headTickMs: 0,
     headScale: 1.0,
-    stareTickMs: 0,  // ms chờ ngủ lại (1500ms)
+    stareTickMs: 0,
     canPat: true, score: 0,
     gameOver: false, gameOverAlpha: 0,
   };
@@ -120,16 +117,13 @@ function drawCat(frameIdx, isStaring) {
   const img = isStaring ? IMG_STARE : IMG_SLEEP;
   let dw = CAT_W, dh = CAT_H;
   if (!isStaring) {
-    // pygame: scale_factor = 1 - 0.03*frame_index (frame 0 = no squish)
     const sf = frameIdx===0 ? 1 : 1-0.03*frameIdx;
     dh = CAT_H * sf;
   }
-  // midbottom cố định
   const dx = W/2 - dw/2;
   const dy = H/2 + CAT_H/2 - dh;
   ctx.drawImage(img, dx, dy, dw, dh);
 
-  // Z text khi ngủ
   if (!isStaring) {
     const t = performance.now()/1000;
     const zOff = (Math.sin(t*1.2)+1)*4;
@@ -166,6 +160,7 @@ function drawScore(score) {
 // ── Main loop ─────────────────────────────────────────────────────────────
 const isMobile = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
 const FRAME_DELAY     = 5;
+const FRAME_DELAY_MS  = 40; // ~83ms
 const STARE_TIMEOUT   = 1500;
 const HEAD_APPEAR_MS  = 340;
 const HEAD_GROW_SPEED = 0.05;
@@ -173,15 +168,15 @@ let lastTs = 0;
 
 function loop(ts) {
   requestAnimationFrame(loop);
-  const dt = lastTs ? Math.min(ts-lastTs, 50) : 16;
+  const dt = lastTs ? Math.min(ts - lastTs, 50) : 16;
   lastTs = ts;
+
   const s = state;
 
   ctx.fillStyle='#fffdf5';
   ctx.fillRect(0,0,W,H);
 
   if (!s.gameOver) {
-    // Vẽ mèo
     const frameForCat = (s.patPlay && !s.catIsStaring) ? s.handFrame : 0;
     const catRect = drawCat(frameForCat, s.catIsStaring);
 
@@ -189,17 +184,14 @@ function loop(ts) {
     let handPos = null;
     if (s.canPat) {
       if (!isMobile) {
-        // Desktop: luôn vẽ tay theo chuột
         drawHand(s.mx, s.my, s.patPlay ? s.handFrame : 0);
         handPos = { cx: s.mx, cy: s.my, r: Math.min(W,H)*0.22*0.38 };
       } else if (s.patPlay) {
-        // Mobile: chỉ vẽ khi đang chạm
         drawHand(s.mx, s.my, s.handFrame);
         handPos = { cx: s.mx, cy: s.my, r: Math.min(W,H)*0.22*0.38 };
       }
     }
 
-    // Va chạm — chỉ tính khi đang nhấn
     const hit = s.patPlay && s.canPat && handPos &&
       circleRect(handPos.cx, handPos.cy, handPos.r, catRect.x, catRect.y, catRect.w, catRect.h);
 
@@ -207,7 +199,6 @@ function loop(ts) {
       if (hit) {
         s.stareCounter++;
 
-        // Trigger stare
         if (s.stareCounter >= s.stareRandom && !s.catIsStaring) {
           playBruh();
           s.catIsStaring = true;
@@ -217,9 +208,8 @@ function loop(ts) {
           s.stareTickMs  = 0;
         }
 
-        // Animation tay
-        s.frameCounter++;
-        if (s.frameCounter >= FRAME_DELAY) {
+        s.frameCounter += dt;
+        if (s.frameCounter >= FRAME_DELAY_MS) {
           s.handFrame++;
           s.frameCounter = 0;
           if (s.handFrame >= 5) {
@@ -230,10 +220,9 @@ function loop(ts) {
           }
         }
 
-        // Pat khi đang stare → đếm để trigger đầu to
         if (s.catIsStaring && !s.displayHead) {
           s.headTickMs  += dt;
-          s.stareTickMs  = 0; // reset ngủ lại vì đang bị pat
+          s.stareTickMs  = 0;
           if (s.headTickMs >= HEAD_APPEAR_MS) {
             s.displayHead = true;
             s.headScale   = 1.0;
@@ -242,7 +231,6 @@ function loop(ts) {
         }
 
       } else {
-        // Giữ chuột nhưng không chạm → reset tay, đếm ngủ lại
         s.handFrame=0; s.frameCounter=0;
         if (s.catIsStaring && !s.displayHead) {
           s.stareTickMs += dt;
@@ -252,7 +240,6 @@ function loop(ts) {
         }
       }
     } else {
-      // Không nhấn chuột → reset tay, đếm ngủ lại
       s.handFrame=0; s.frameCounter=0;
       if (s.catIsStaring && !s.displayHead) {
         s.stareTickMs += dt;
@@ -262,7 +249,6 @@ function loop(ts) {
       }
     }
 
-    // Đầu to phình
     if (s.catIsStaring && s.displayHead) {
       s.canPat = false;
       s.headScale += HEAD_GROW_SPEED;
@@ -274,9 +260,7 @@ function loop(ts) {
     updateParticles();
     drawScore(s.score);
 
-    // Hint
   } else {
-    // Game Over
     if (s.gameOverAlpha<1) s.gameOverAlpha+=0.04;
     ctx.fillStyle=`rgba(0,0,0,${s.gameOverAlpha})`;
     ctx.fillRect(0,0,W,H);
