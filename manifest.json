@@ -1,0 +1,12 @@
+{
+  "name": "PatPat My Cat",
+  "short_name": "Cat Pat",
+  "display": "fullscreen",
+  "background_color": "#fffdf5",
+  "theme_color": "#fffdf5",
+  "start_url": ".",
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
