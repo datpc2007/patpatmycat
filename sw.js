@@ -1,10 +1,6 @@
-const CACHE = 'catpat-v1';
-const BASE = self.registration.scope; // tự detect: local hay GitHub Pages
-
+const CACHE = 'catpat-v2';
 const FILES = [
-  '',
   'index.html',
-  'manifest.json',
   'icon.png',
   'image/cat_sleep.png',
   'image/cat_stare.png',
@@ -19,7 +15,7 @@ const FILES = [
   'sound/pat2.ogg',
   'sound/bruh.ogg',
   'sound/crazy.ogg',
-].map(f => BASE + f);
+];
 
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -38,6 +34,8 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
+  // Chỉ cache GET, không can thiệp navigation
+  if (e.request.method !== 'GET') return;
   e.respondWith(
     caches.match(e.request).then(r => r || fetch(e.request))
   );
