@@ -166,9 +166,9 @@ function drawScore(score) {
 // ── Main loop ─────────────────────────────────────────────────────────────
 const isMobile = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
 const FRAME_DELAY     = 5;
-const STARE_TIMEOUT   = 1500; // ms
-const HEAD_APPEAR_MS  = 220;  // ms
-const HEAD_GROW_SPEED = 0.05; // per frame ~60fps
+const STARE_TIMEOUT   = 1500;
+const HEAD_APPEAR_MS  = 340;
+const HEAD_GROW_SPEED = 0.05;
 let lastTs = 0;
 
 function loop(ts) {
