@@ -11,8 +11,11 @@
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <script>
+  // Xóa service worker cũ nếu có
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js');
+    navigator.serviceWorker.getRegistrations().then(regs => {
+      regs.forEach(reg => reg.unregister());
+    });
   }
 </script>
 <style>
