@@ -10,12 +10,11 @@
 <meta name="theme-color" content="#fffdf5">
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
+<link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;PatPat My Cat&quot;,&quot;short_name&quot;:&quot;Cat Pat&quot;,&quot;display&quot;:&quot;fullscreen&quot;,&quot;background_color&quot;:&quot;%23fffdf5&quot;,&quot;theme_color&quot;:&quot;%23fffdf5&quot;,&quot;start_url&quot;:&quot;.&quot;,&quot;icons&quot;:[{&quot;src&quot;:&quot;icon.png&quot;,&quot;sizes&quot;:&quot;192x192&quot;,&quot;type&quot;:&quot;image/png&quot;},{&quot;src&quot;:&quot;icon.png&quot;,&quot;sizes&quot;:&quot;512x512&quot;,&quot;type&quot;:&quot;image/png&quot;}]}">
+<title>PatPat My Cat</title>
 <script>
-  // Xóa service worker cũ nếu có
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(regs => {
-      regs.forEach(reg => reg.unregister());
-    });
+    navigator.serviceWorker.register('sw.js');
   }
 </script>
 <style>
