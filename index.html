@@ -129,7 +129,7 @@ function drawCat(frameIdx, isStaring) {
 
 function drawHand(mx, my, frame) {
   const img = HANDS[frame];
-  const sz = Math.min(W,H)*0.22;
+  const sz = Math.min(W,H)*0.42;
   ctx.drawImage(img, mx-sz/2, my-sz/2, sz, sz);
   return { cx:mx, cy:my, r:sz*0.38 };
 }
