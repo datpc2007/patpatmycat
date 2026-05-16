@@ -147,6 +147,14 @@ function drawScore(score) {
   ctx.fillText(score, 30, 30);
 }
 
+function drawinfo() {
+  ctx.fillStyle='#222';
+  ctx.font=`bold ${Math.min(W,H)*0.18}px Roboto`;
+  ctx.textAlign='right';
+  ctx.textBaseline='bottom';
+  ctx.fillText('DatPC', 30, 30);
+}
+
 const isMobile = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
 const FRAME_DELAY_MS  = 40;
 const STARE_TIMEOUT   = 1500;
