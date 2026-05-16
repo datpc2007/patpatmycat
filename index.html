@@ -149,10 +149,10 @@ function drawScore(score) {
 
 function drawinfo() {
   ctx.fillStyle='#222';
-  ctx.font=`bold ${Math.min(W,H)*0.18}px Roboto`;
+  ctx.font=`bold ${Math.min(W,H)*0.1}px Roboto`;
   ctx.textAlign='right';
   ctx.textBaseline='bottom';
-  ctx.fillText('DatPC', W - 30, H - 30);
+  ctx.fillText('DatPC', W, H);
 }
 
 const isMobile = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
