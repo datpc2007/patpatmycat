@@ -2,15 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="PatPat My Cat">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#fffdf5">
 
-<link rel="icon" type="image/png" href="icon.png">
-<link rel="apple-touch-icon" href="icon.png">
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
 <title>PatPat My Cat</title>
 
@@ -42,6 +36,28 @@ canvas{
 <canvas id="c"></canvas>
 
 <script>
+
+/* =========================
+   CONFIG
+========================= */
+
+const CONFIG = {
+
+  FPS: 20,
+
+  FRAME_DELAY_MS: 40,
+
+  STARE_TIMEOUT: 1500,
+
+  HEAD_APPEAR_MS: 340,
+
+  HEAD_GROW_SPEED: 0.0035
+};
+
+/* =========================
+   ASSETS
+========================= */
+
 const IMG_SLEEP = new Image();
 IMG_SLEEP.src = "image/cat_sleep.png";
 
@@ -73,8 +89,13 @@ const SND_BRUH  = mkAudio("sound/bruh.ogg");
 const SND_CRAZY = mkAudio("sound/crazy.ogg");
 
 function playPat(){
-  const s = SND_PATS[Math.floor(Math.random()*SND_PATS.length)];
+  const s =
+    SND_PATS[
+      Math.floor(Math.random()*SND_PATS.length)
+    ];
+
   s.currentTime = 0;
+
   s.play().catch(()=>{});
 }
 
@@ -88,47 +109,91 @@ function playCrazy(){
   SND_CRAZY.play().catch(()=>{});
 }
 
-const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
+/* =========================
+   CANVAS
+========================= */
+
+const canvas =
+  document.getElementById('c');
+
+const ctx =
+  canvas.getContext('2d');
 
 ctx.imageSmoothingEnabled = false;
 
-let W = canvas.width = window.innerWidth;
-let H = canvas.height = window.innerHeight;
+let W =
+  canvas.width =
+  window.innerWidth;
 
-let CAT_W, CAT_H, CAT_X, CAT_Y;
+let H =
+  canvas.height =
+  window.innerHeight;
+
+/* =========================
+   CAT DIMENSIONS
+========================= */
+
+let CAT_W, CAT_H;
+let CAT_X, CAT_Y;
+
 let HEAD_CX, HEAD_CY;
 let HEAD_BASE;
 
 function resetDimensions(){
+
   const sz = Math.min(W,H);
 
   CAT_W = sz * 0.7;
   CAT_H = sz;
 
   CAT_X = W/2 - CAT_W/2;
-  CAT_Y = H/2 + CAT_H/2 - CAT_H;
+
+  CAT_Y =
+    H/2 +
+    CAT_H/2 -
+    CAT_H;
 
   HEAD_BASE = sz * 0.6;
 
-  HEAD_CX = (CAT_X + CAT_W) - HEAD_BASE/2;
-  HEAD_CY = CAT_Y + HEAD_BASE/2 - sz*0.075;
+  HEAD_CX =
+    (CAT_X + CAT_W) -
+    HEAD_BASE/2;
+
+  HEAD_CY =
+    CAT_Y +
+    HEAD_BASE/2 -
+    sz*0.075;
 }
 
 resetDimensions();
 
-window.addEventListener('resize', ()=>{
-  W = canvas.width = window.innerWidth;
-  H = canvas.height = window.innerHeight;
+window.addEventListener('resize',()=>{
+
+  W =
+    canvas.width =
+    window.innerWidth;
+
+  H =
+    canvas.height =
+    window.innerHeight;
+
   resetDimensions();
 });
+
+/* =========================
+   GAME STATE
+========================= */
 
 let state = {};
 
 function resetGame(){
+
   state = {
+
     handFrame:0,
+
     frameCounter:0,
+
     handLoopCounter:0,
 
     patPlay:false,
@@ -137,6 +202,7 @@ function resetGame(){
     my:H/2,
 
     stareRandom:0,
+
     stareCounter:0,
 
     catIsStaring:false,
@@ -144,6 +210,7 @@ function resetGame(){
     displayHead:false,
 
     headTickMs:0,
+
     headScale:1.0,
 
     stareTickMs:0,
@@ -153,70 +220,134 @@ function resetGame(){
     score:0,
 
     gameOver:false,
+
     gameOverAlpha:0,
   };
 }
 
 resetGame();
 
+/* =========================
+   PARTICLES
+========================= */
+
 let particles = [];
 
-function updateParticles(){
-  particles = particles.filter(p=>p.life>0);
+function updateParticles(dt){
+
+  particles =
+    particles.filter(p=>p.life>0);
 
   particles.forEach(p=>{
-    p.x += p.vx;
-    p.y += p.vy;
-    p.vy += 0.2;
-    p.life -= 0.04;
+
+    p.x += p.vx * dt * 0.06;
+
+    p.y += p.vy * dt * 0.06;
+
+    p.vy += 0.2 * dt * 0.06;
+
+    p.life -= 0.04 * dt * 0.06;
 
     ctx.globalAlpha = p.life;
 
     ctx.fillStyle = p.color;
 
     ctx.beginPath();
-    ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
+
+    ctx.arc(
+      p.x,
+      p.y,
+      p.size,
+      0,
+      Math.PI*2
+    );
+
     ctx.fill();
 
     ctx.globalAlpha = 1;
   });
 }
 
-function circleRect(cx,cy,cr,rx,ry,rw,rh){
-  const nx = Math.max(rx,Math.min(cx,rx+rw));
-  const ny = Math.max(ry,Math.min(cy,ry+rh));
+/* =========================
+   COLLISION
+========================= */
 
-  return (cx-nx)**2 + (cy-ny)**2 <= cr*cr;
+function circleRect(
+  cx,cy,cr,
+  rx,ry,rw,rh
+){
+
+  const nx =
+    Math.max(rx,
+    Math.min(cx,rx+rw));
+
+  const ny =
+    Math.max(ry,
+    Math.min(cy,ry+rh));
+
+  return (
+    (cx-nx)**2 +
+    (cy-ny)**2
+  ) <= cr*cr;
 }
 
+/* =========================
+   DRAW
+========================= */
+
 function drawCat(frameIdx,isStaring){
-  const img = isStaring ? IMG_STARE : IMG_SLEEP;
+
+  const img =
+    isStaring
+    ? IMG_STARE
+    : IMG_SLEEP;
 
   let dw = CAT_W;
   let dh = CAT_H;
 
   if(!isStaring){
-    const sf = frameIdx===0 ? 1 : 1-0.03*frameIdx;
+
+    const sf =
+      frameIdx===0
+      ? 1
+      : 1-0.03*frameIdx;
+
     dh = CAT_H * sf;
   }
 
   const dx = W/2 - dw/2;
-  const dy = H/2 + CAT_H/2 - dh;
 
-  ctx.drawImage(img,dx,dy,dw,dh);
+  const dy =
+    H/2 +
+    CAT_H/2 -
+    dh;
+
+  ctx.drawImage(
+    img,
+    dx,dy,dw,dh
+  );
 
   if(!isStaring){
-    const t = performance.now()/1000;
-    const zOff = (Math.sin(t*1.2)+1)*4;
 
-    ctx.fillStyle='rgba(50,50,50,0.6)';
-    ctx.font=`bold ${Math.min(W,H)*0.05}px Roboto`;
+    const t =
+      performance.now()/1000;
+
+    const zOff =
+      (Math.sin(t*1.2)+1)*4;
+
+    ctx.fillStyle =
+      'rgba(50,50,50,0.6)';
+
+    ctx.font =
+      `bold ${Math.min(W,H)*0.05}px Roboto`;
+
     ctx.textAlign='left';
+
     ctx.textBaseline='alphabetic';
 
     ctx.fillText(
       'z..Z..z',
-      W/2+dw*0.38,
+      W/2 + dw*0.38,
       dy + dh*0.08 + zOff
     );
   }
@@ -230,9 +361,11 @@ function drawCat(frameIdx,isStaring){
 }
 
 function drawHand(mx,my,frame){
+
   const img = HANDS[frame];
 
-  const sz = Math.min(W,H)*0.5;
+  const sz =
+    Math.min(W,H)*0.5;
 
   ctx.drawImage(
     img,
@@ -250,8 +383,12 @@ function drawHand(mx,my,frame){
 }
 
 function drawBigHead(scale){
-  const w = HEAD_BASE * scale;
-  const h = HEAD_BASE * scale;
+
+  const w =
+    HEAD_BASE * scale;
+
+  const h =
+    HEAD_BASE * scale;
 
   ctx.drawImage(
     IMG_HEAD,
@@ -263,66 +400,94 @@ function drawBigHead(scale){
 }
 
 function drawScore(score){
+
   ctx.fillStyle='#222';
 
-  ctx.font=`bold ${Math.min(W,H)*0.18}px Roboto`;
+  ctx.font =
+    `bold ${Math.min(W,H)*0.18}px Roboto`;
 
   ctx.textAlign='left';
+
   ctx.textBaseline='top';
 
   ctx.fillText(score,30,30);
 }
 
-function drawinfo(){
+function drawInfo(){
+
   ctx.fillStyle='#222';
 
-  ctx.font=`bold ${Math.min(W,H)*0.05}px Roboto`;
+  ctx.font =
+    `bold ${Math.min(W,H)*0.05}px Roboto`;
 
   ctx.textAlign='right';
+
   ctx.textBaseline='bottom';
 
-  ctx.fillText('DatPC', W-30, H-30);
+  ctx.fillText(
+    'DatPC',
+    W-30,
+    H-30
+  );
 }
 
+/* =========================
+   MOBILE
+========================= */
+
 const isMobile =
-('ontouchstart' in window) ||
-navigator.maxTouchPoints > 0;
+  ('ontouchstart' in window) ||
+  navigator.maxTouchPoints > 0;
 
-const FRAME_DELAY_MS = 40;
-const STARE_TIMEOUT = 1500;
-const HEAD_APPEAR_MS = 340;
-const HEAD_GROW_SPEED = 0.05;
-
-const TARGET_FPS = 20;
-const FRAME_TIME = 1000 / TARGET_FPS;
+/* =========================
+   FPS LIMITER
+========================= */
 
 let lastFrameTime = 0;
+
+/* =========================
+   MAIN LOOP
+========================= */
 
 function loop(ts){
 
   requestAnimationFrame(loop);
 
-  if(ts - lastFrameTime < FRAME_TIME)
+  const frameTime =
+    1000 / CONFIG.FPS;
+
+  if(ts - lastFrameTime < frameTime)
     return;
 
-  const dt = Math.min(ts - lastFrameTime, 50);
+  const dt =
+    Math.min(
+      ts - lastFrameTime,
+      100
+    );
 
   lastFrameTime = ts;
 
   const s = state;
 
   ctx.fillStyle='#fffdf5';
+
   ctx.fillRect(0,0,W,H);
 
   if(!s.gameOver){
 
     const frameForCat =
-      (s.patPlay && !s.catIsStaring)
+      (
+        s.patPlay &&
+        !s.catIsStaring
+      )
       ? s.handFrame
       : 0;
 
     const catRect =
-      drawCat(frameForCat,s.catIsStaring);
+      drawCat(
+        frameForCat,
+        s.catIsStaring
+      );
 
     let handPos = null;
 
@@ -333,7 +498,9 @@ function loop(ts){
         drawHand(
           s.mx,
           s.my,
-          s.patPlay ? s.handFrame : 0
+          s.patPlay
+          ? s.handFrame
+          : 0
         );
 
         handPos = {
@@ -376,12 +543,14 @@ function loop(ts){
 
       if(hit){
 
-        s.stareCounter++;
+        s.stareCounter += dt / 16.67;
 
         if(
-          s.stareCounter >= s.stareRandom &&
+          s.stareCounter >=
+          s.stareRandom &&
           !s.catIsStaring
         ){
+
           playBruh();
 
           s.catIsStaring = true;
@@ -389,6 +558,7 @@ function loop(ts){
           s.displayHead = false;
 
           s.headTickMs = 0;
+
           s.headScale = 1.0;
 
           s.stareTickMs = 0;
@@ -396,9 +566,13 @@ function loop(ts){
 
         s.frameCounter += dt;
 
-        if(s.frameCounter >= FRAME_DELAY_MS){
+        if(
+          s.frameCounter >=
+          CONFIG.FRAME_DELAY_MS
+        ){
 
           s.handFrame++;
+
           s.frameCounter = 0;
 
           if(s.handFrame >= 5){
@@ -409,7 +583,9 @@ function loop(ts){
 
             playPat();
 
-            if(s.handLoopCounter >= 3){
+            if(
+              s.handLoopCounter >= 3
+            ){
 
               s.score++;
 
@@ -418,13 +594,19 @@ function loop(ts){
           }
         }
 
-        if(s.catIsStaring && !s.displayHead){
+        if(
+          s.catIsStaring &&
+          !s.displayHead
+        ){
 
           s.headTickMs += dt;
 
           s.stareTickMs = 0;
 
-          if(s.headTickMs >= HEAD_APPEAR_MS){
+          if(
+            s.headTickMs >=
+            CONFIG.HEAD_APPEAR_MS
+          ){
 
             s.displayHead = true;
 
@@ -437,17 +619,25 @@ function loop(ts){
       }else{
 
         s.handFrame = 0;
+
         s.frameCounter = 0;
 
-        if(s.catIsStaring && !s.displayHead){
+        if(
+          s.catIsStaring &&
+          !s.displayHead
+        ){
 
           s.stareTickMs += dt;
 
-          if(s.stareTickMs >= STARE_TIMEOUT){
+          if(
+            s.stareTickMs >=
+            CONFIG.STARE_TIMEOUT
+          ){
 
             s.catIsStaring = false;
 
             s.stareTickMs = 0;
+
             s.headTickMs = 0;
           }
         }
@@ -456,32 +646,47 @@ function loop(ts){
     }else{
 
       s.handFrame = 0;
+
       s.frameCounter = 0;
 
-      if(s.catIsStaring && !s.displayHead){
+      if(
+        s.catIsStaring &&
+        !s.displayHead
+      ){
 
         s.stareTickMs += dt;
 
-        if(s.stareTickMs >= STARE_TIMEOUT){
+        if(
+          s.stareTickMs >=
+          CONFIG.STARE_TIMEOUT
+        ){
 
           s.catIsStaring = false;
 
           s.stareTickMs = 0;
+
           s.headTickMs = 0;
         }
       }
     }
 
-    if(s.catIsStaring && s.displayHead){
+    if(
+      s.catIsStaring &&
+      s.displayHead
+    ){
 
       s.canPat = false;
 
-      s.headScale += HEAD_GROW_SPEED;
+      s.headScale +=
+        CONFIG.HEAD_GROW_SPEED * dt;
 
       const maxScale =
-        Math.max(W,H) / HEAD_BASE * 2;
+        Math.max(W,H) /
+        HEAD_BASE * 2;
 
-      if(s.headScale >= maxScale){
+      if(
+        s.headScale >= maxScale
+      ){
 
         s.headScale = maxScale;
 
@@ -491,16 +696,19 @@ function loop(ts){
       drawBigHead(s.headScale);
     }
 
-    updateParticles();
+    updateParticles(dt);
 
     drawScore(s.score);
 
-    drawinfo();
+    drawInfo();
 
   }else{
 
-    if(s.gameOverAlpha < 1)
-      s.gameOverAlpha += 0.04;
+    s.gameOverAlpha +=
+      0.0015 * dt;
+
+    if(s.gameOverAlpha > 1)
+      s.gameOverAlpha = 1;
 
     ctx.fillStyle =
       `rgba(0,0,0,${s.gameOverAlpha})`;
@@ -508,7 +716,8 @@ function loop(ts){
     ctx.fillRect(0,0,W,H);
 
     const pulse =
-      1 + Math.sin(ts*0.003)*0.03;
+      1 +
+      Math.sin(ts*0.003)*0.03;
 
     ctx.save();
 
@@ -517,20 +726,25 @@ function loop(ts){
     ctx.scale(pulse,pulse);
 
     ctx.textAlign='center';
+
     ctx.textBaseline='middle';
 
-    ctx.fillStyle=
+    ctx.fillStyle =
       `rgba(220,50,50,${s.gameOverAlpha})`;
 
-    ctx.font=
+    ctx.font =
       `bold ${Math.min(W,H)*0.15}px Roboto`;
 
-    ctx.fillText('YOU DIE',0,0);
+    ctx.fillText(
+      'YOU DIE',
+      0,
+      0
+    );
 
-    ctx.fillStyle=
+    ctx.fillStyle =
       `rgba(255,255,255,${s.gameOverAlpha})`;
 
-    ctx.font=
+    ctx.font =
       `${Math.min(W,H)*0.055}px Roboto`;
 
     ctx.fillText(
@@ -540,12 +754,17 @@ function loop(ts){
     );
 
     const blink =
-      Math.max(0,Math.sin(ts*0.002));
+      Math.max(
+        0,
+        Math.sin(ts*0.002)
+      );
 
-    ctx.fillStyle=
-      `rgba(160,160,160,${s.gameOverAlpha*blink})`;
+    ctx.fillStyle =
+      `rgba(160,160,160,${
+        s.gameOverAlpha * blink
+      })`;
 
-    ctx.font=
+    ctx.font =
       `${Math.min(W,H)*0.03}px Roboto`;
 
     ctx.fillText(
@@ -558,13 +777,22 @@ function loop(ts){
   }
 }
 
-canvas.addEventListener('mousedown',e=>{
+/* =========================
+   INPUT
+========================= */
+
+canvas.addEventListener(
+'mousedown',
+e=>{
 
   state.mx = e.clientX;
+
   state.my = e.clientY;
 
   if(state.gameOver){
+
     resetGame();
+
     return;
   }
 
@@ -575,33 +803,44 @@ canvas.addEventListener('mousedown',e=>{
     if(!state.catIsStaring){
 
       state.stareRandom =
-        Math.floor(Math.random()*240)+10;
+        Math.floor(
+          Math.random()*240
+        ) + 10;
 
       state.stareCounter = 0;
     }
   }
 });
 
-canvas.addEventListener('mouseup',()=>{
+canvas.addEventListener(
+'mouseup',
+()=>{
   state.patPlay = false;
 });
 
-canvas.addEventListener('mousemove',e=>{
+canvas.addEventListener(
+'mousemove',
+e=>{
   state.mx = e.clientX;
   state.my = e.clientY;
 });
 
-canvas.addEventListener('touchstart',e=>{
+canvas.addEventListener(
+'touchstart',
+e=>{
 
   e.preventDefault();
 
   const t = e.touches[0];
 
   state.mx = t.clientX;
+
   state.my = t.clientY;
 
   if(state.gameOver){
+
     resetGame();
+
     return;
   }
 
@@ -612,34 +851,49 @@ canvas.addEventListener('touchstart',e=>{
     if(!state.catIsStaring){
 
       state.stareRandom =
-        Math.floor(Math.random()*240)+10;
+        Math.floor(
+          Math.random()*240
+        ) + 10;
 
       state.stareCounter = 0;
     }
   }
 
-},{passive:false});
+},
+{passive:false});
 
-canvas.addEventListener('touchmove',e=>{
+canvas.addEventListener(
+'touchmove',
+e=>{
 
   e.preventDefault();
 
   const t = e.touches[0];
 
   state.mx = t.clientX;
+
   state.my = t.clientY;
 
-},{passive:false});
+},
+{passive:false});
 
-canvas.addEventListener('touchend',e=>{
+canvas.addEventListener(
+'touchend',
+e=>{
 
   e.preventDefault();
 
   state.patPlay = false;
 
-},{passive:false});
+},
+{passive:false});
+
+/* =========================
+   START
+========================= */
 
 requestAnimationFrame(loop);
+
 </script>
 </body>
 </html>
